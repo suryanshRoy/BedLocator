@@ -238,7 +238,7 @@
         }
 
         // URL of your FastAPI backend endpoint
-const backendAPIUrl = 'https://bedlocator.onrender.com/bedavailability/'; 
+const backendAPIUrl = 'https://bedlocator.onrender.com/bedavailability';
 
 function checkAvailability() {
     getLocation();
@@ -251,11 +251,18 @@ function checkAvailability() {
         return;
     }
 
-    fetch(backendAPIUrl, { method: 'POST', body: JSON.stringify({ hospitalName, bedType }) })
-        .then(response => response.json())
-        .then(data => {
-            document.getElementById("availabilityResult").innerText = data.message;
-        });
+    fetch(backendAPIUrl, {
+    method: 'POST',
+    headers: {
+        'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ hospitalName, bedType }),
+})
+.then(response => response.json())
+.then(data => {
+    document.getElementById("availabilityResult").innerText = data.message;
+})
+.catch(error => console.error('Error:', error));
 }
 
     </script>
