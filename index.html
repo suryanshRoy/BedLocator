@@ -251,7 +251,7 @@ function checkAvailability() {
         return;
     }
 
-    fetch(backendAPIUrl, { method: 'GET', body: JSON.stringify({ hospitalName, bedType }) })
+    fetch(backendAPIUrl, { method: 'POST', body: JSON.stringify({ hospitalName, bedType }) })
         .then(response => response.json())
         .then(data => {
             document.getElementById("availabilityResult").innerText = data.message;
