@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+    <link rel="stylesheet" href="https://unpkg.com/leaflet-control-geocoder/dist/Control.Geocoder.css" />
+    <title>Hospital Bed Availability</title>
+    <style>
+        body {
+            font-family: 'Arial', sans-serif;
+            background-color: #f5f5f5;
+            margin: 0;
+            padding: 0;
+        }
+
+        header {
+            background-color: #3498db;
+            padding: 15px;
+            text-align: center;
+        }
+
+        #bright {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-direction: column;
+            margin-top: 20px;
+            position: relative;
+        }
+
+        #bright h1::before {
+            content: "";
+            position: absolute;
+            width: 0;
+            height: 100%;
+            background: linear-gradient(to right, yellow, transparent);
+            animation: glowAnimation 15 linear infinite;
+        }
+
+        @keyframes glowAnimation {
+            0% {
+                width: 0;
+                outline-color: yellow;
+            }
+
+            100% {
+                width: 100%;
+                outline-color: yellow;
+            }
+        }
+
+        @keyframes colorChangeLeftRight {
+            0% {
+                background-position: top left;
+                color: rgb(166, 255, 0);
+            }
+
+            12.5% {
+                color: #33ff00;
+            }
+
+            25% {
+                color: rgb(0, 255, 13);
+            }
+
+            37.5% {
+                color: rgb(0, 255, 55);
+            }
+
+            50% {
+                color: #00ff73;
+            }
+
+            62.5% {
+                color: rgb(0, 255, 157);
+            }
+
+            75.5% {
+                color: rgb(0, 255, 149);
+            }
+
+            87.5% {
+                color: #00ff55;
+            }
+
+            100% {
+                color: rgb(21, 255, 0);
+            }
+        }
+
+        .text_color {
+            animation: colorChangeLeftRight 15s linear infinite;
+        }
+
+        form {
+            max-width: 400px;
+            margin: 20px auto;
+            padding: 20px;
+            background-color: #fff;
+            border-radius: 8px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+        }
+
+        label,
+        select,
+        input,
+        button {
+            display: block;
+            margin-bottom: 15px;
+            width: 100%;
+            box-sizing: border-box;
+        }
+
+        button {
+            background-color: #3498db;
+            color: #fff;
+            padding: 10px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+        }
+
+        button:hover {
+            background-color: #007bb5;
+        }
+
+        #availabilityResult {
+            margin-top: 20px;
+            padding: 10px;
+            background-color: #ecf0f1;
+            border-radius: 5px;
+        }
+
+        footer {
+            background-color: #333;
+            color: #fff;
+            text-align: center;
+            padding: 10px;
+            position: fixed;
+            bottom: 0;
+            width: 100%;
+        }
+
+        #map {
+            height: 200px;
+            width: 100%;
+            margin: 0 auto;
+        }
+    </style>
+</head>
+
+<body>
+    <header>
+        <h1 id="bright" class="text_color">Hospital Bed Availability</h1>
+    </header>
+
+    <form id="availabilityForm">
+        <label for="hospitalName">Enter Hospital Name:</label>
+        <input type="text" id="hospitalName" name="hospitalName" required onkeypress="return handleKeyPress(event)" required onkeyup="handleKeyUp(event)">
+        <div id="map"></div>
+        <br>
+        <label for="bedType">Select Bed Type:</label>
+        <select id="bedType" name="bedType" required>
+            <option value="general">General Bed</option>
+            <option value="icu">ICU Bed</option>
+            <option value="ventilator">Ventilator Bed</option>
+        </select>
+        <button type="button" onclick="checkAvailability()">Check Availability</button>
+    </form>
+
+    <div id="availabilityResult"></div>
+
+    <footer>
+        <p style="font-weight: bold; font-size: large;">&copy; 2023 Bed Locator. All rights reserved.</p>
+    </footer>
+    
+    <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+    <script src="https://unpkg.com/leaflet-control-geocoder/dist/Control.Geocoder.js"></script>
+    <script>
+        function handleKeyPress(event) {
+            if (event.key === "Enter") {
+                event.preventDefault();
+            }
+        }
+
+        var southWest = L.latLng(-90, -180),
+        northEast = L.latLng(90, 180),
+        bounds = L.latLngBounds(southWest, northEast);
+
+        var map = L.map('map', {
+            center: [0, 0],
+            zoom: 0,
+            maxBounds: bounds, // Set the maximum bounds
+            maxBoundsViscosity: 1.0 // Apply the bounds with maximum viscosity
+        });
+
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '&copy; OpenStreetMap contributors'
+        }).addTo(map);
+        L.Control.geocoder().addTo(map);
+
+        function getLocation() {
+            if (navigator.geolocation) {
+                navigator.geolocation.getCurrentPosition(showPosition, showError);
+            } else {
+                alert("Geolocation is not supported by this browser.");
+            }
+        }
+
+        function showPosition(position) {
+            const lat = position.coords.latitude;
+            const lng = position.coords.longitude;
+
+            map.setView([lat, lng], 13);
+            L.marker([lat, lng]).addTo(map)
+                .bindPopup('Your Location')
+                .openPopup();
+        }
+
+        function showError(error) {
+            switch (error.code) {
+                case error.PERMISSION_DENIED:
+                    alert("User denied the request for Geolocation.");
+                    break;
+                case error.POSITION_UNAVAILABLE:
+                    alert("Location information is unavailable.");
+                    break;
+                case error.TIMEOUT:
+                    alert("The request to get user location timed out.");
+                    break;
+                case error.UNKNOWN_ERROR:
+                    alert("An unknown error occurred.");
+                    break;
+            }
+        }
+
+        // URL of your FastAPI backend endpoint
+const backendAPIUrl = 'https://bedlocator.onrender.com'; 
+
+function checkAvailability() {
+    getLocation();
+
+    var hospitalName = document.getElementById("hospitalName").value;
+    var bedType = document.getElementById("bedType").value;
+
+    if (hospitalName.trim() === "") {
+        alert("Please enter a hospital name.");
+        return;
+    }
+
+    fetch(backendAPIUrl, { method: 'POST', body: JSON.stringify({ hospitalName, bedType }) })
+        .then(response => response.json())
+        .then(data => {
+            document.getElementById("availabilityResult").innerText = data.message;
+        });
+}
+
+    </script>
+</body>
+
+</html>
