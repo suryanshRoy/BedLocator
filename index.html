@@ -8,18 +8,71 @@
     <link rel="stylesheet" href="https://unpkg.com/leaflet-control-geocoder/dist/Control.Geocoder.css" />
     <title>Hospital Bed Availability</title>
     <style>
+        /* Theme tokens: use CSS variables so colors adapt to themes */
+        :root {
+            --bg: #f5f5f5;
+            --header-bg: #f2f9ff;
+            --card-bg: #ffffff;
+            --text: #111827;
+            --muted: #4b5563;
+            --primary: #3498db;
+            --primary-contrast: #ffffff;
+            --result-bg: #ecf0f1;
+            --footer-bg: #333333;
+            --footer-text: #ffffff;
+            --map-border: rgba(0,0,0,0.08);
+        }
+
+        /* Dark theme overrides */
+        [data-theme="dark"] {
+            --bg: #0f1720;
+            --header-bg: #071025;
+            --card-bg: #0b1220;
+            --text: #e6eef6;
+            --muted: #94a3b8;
+            --primary: #0ea5e9;
+            --primary-contrast: #021124;
+            --result-bg: #111827;
+            --footer-bg: #04060a;
+            --footer-text: #cbd5e1;
+            --map-border: rgba(255,255,255,0.06);
+        }
+
         body {
             font-family: 'Arial', sans-serif;
-            background-color: #f5f5f5;
+            background-color: var(--bg);
+            color: var(--text);
             margin: 0;
             padding: 0;
+            transition: background-color 200ms ease, color 200ms ease;
         }
 
         header {
-            background-color: #3498db;
+            background-color: var(--header-bg);
             padding: 15px;
             text-align: center;
         }
+
+        /* Theme toggle button in top-left corner */
+        #themeToggle {
+            position: fixed;
+            top: 12px;
+            left: 12px;
+            z-index: 1200;
+            background: var(--card-bg);
+            color: var(--text);
+            border: 1px solid var(--map-border);
+            padding: 8px 10px;
+            border-radius: 8px;
+            cursor: pointer;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.08);
+            transition: background 150ms ease, color 150ms ease, transform 120ms ease;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        #themeToggle:active { transform: scale(.98); }
 
         #bright {
             display: flex;
@@ -40,119 +93,99 @@
         }
 
         @keyframes glowAnimation {
-            0% {
-                width: 0;
-                outline-color: yellow;
-            }
-
-            100% {
-                width: 100%;
-                outline-color: yellow;
-            }
+            0% { width: 0; outline-color: yellow; }
+            100% { width: 100%; outline-color: yellow; }
         }
 
         @keyframes colorChangeLeftRight {
-            0% {
-                background-position: top left;
-                color: rgb(166, 255, 0);
-            }
-
-            12.5% {
-                color: #33ff00;
-            }
-
-            25% {
-                color: rgb(0, 255, 13);
-            }
-
-            37.5% {
-                color: rgb(0, 255, 55);
-            }
-
-            50% {
-                color: #00ff73;
-            }
-
-            62.5% {
-                color: rgb(0, 255, 157);
-            }
-
-            75.5% {
-                color: rgb(0, 255, 149);
-            }
-
-            87.5% {
-                color: #00ff55;
-            }
-
-            100% {
-                color: rgb(21, 255, 0);
-            }
+            0%   { color: #004aad; }
+            20%  { color: #007bff; }
+            40%  { color: #00bfa6; }
+            60%  { color: #00ffb0; }
+            80%  { color: #27ae60; }
+            100% { color: #004aad; }
         }
 
-        .text_color {
-            animation: colorChangeLeftRight 15s linear infinite;
-        }
+        .text_color { animation: colorChangeLeftRight 100s linear infinite; }
 
         form {
             max-width: 400px;
             margin: 20px auto;
             padding: 20px;
-            background-color: #fff;
+            background-color: var(--card-bg);
             border-radius: 8px;
-            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+            box-shadow: 0 6px 18px rgba(2,6,23,0.08);
+            border: 1px solid var(--map-border);
         }
 
-        label,
-        select,
-        input,
-        button {
-            display: block;
-            margin-bottom: 15px;
-            width: 100%;
-            box-sizing: border-box;
-        }
+    /* Only apply full-width styling to controls inside the availability form */
+    form label, form select, form input, form button { display: block; margin-bottom: 15px; width: 100%; box-sizing: border-box; }
 
         button {
-            background-color: #3498db;
-            color: #fff;
+            background-color: var(--primary);
+            color: var(--primary-contrast);
             padding: 10px;
             border: none;
             border-radius: 5px;
             cursor: pointer;
-            transition: background-color 0.3s ease;
+            transition: filter 0.15s ease;
         }
 
-        button:hover {
-            background-color: #007bb5;
-        }
+        button:hover { filter: brightness(.95); }
 
         #availabilityResult {
             margin-top: 20px;
             padding: 10px;
-            background-color: #ecf0f1;
+            background-color: var(--result-bg);
             border-radius: 5px;
+            color: var(--text);
         }
+
+        /* Status panel below the availability button */
+        #statusContainer {
+            margin-top: 14px;
+            padding: 12px;
+            background: var(--card-bg);
+            border: 1px solid var(--map-border);
+            border-radius: 8px;
+            color: var(--text);
+            box-shadow: 0 4px 12px rgba(2,6,23,0.06);
+        }
+
+        #statusContainer h3 { margin: 0 0 8px 0; }
+        #statusMessage { font-weight: 600; margin-bottom: 6px; }
+        .contact-btn {
+            display: inline-block;
+            margin-top: 8px;
+            padding: 8px 10px;
+            background: var(--primary);
+            color: var(--primary-contrast);
+            border-radius: 6px;
+            text-decoration: none;
+        }
+
+        .beds-list { margin-top: 8px; }
+        .beds-list li { list-style: none; padding: 4px 0; border-bottom: 1px dashed var(--map-border); }
 
         footer {
-            background-color: #333;
-            color: #fff;
+            background-color: var(--footer-bg);
+            color: var(--footer-text);
             text-align: center;
             padding: 10px;
-            position: fixed;
-            bottom: 0;
-            width: 100%;
+            /* No longer fixed: footer will appear after page content */
+            position: static;
+            margin-top: 24px;
+            width: auto;
         }
 
-        #map {
-            height: 200px;
-            width: 100%;
-            margin: 0 auto;
-        }
+        #map { height: 200px; width: 100%; margin: 0 auto; border: 1px solid var(--map-border); border-radius: 6px; }
     </style>
 </head>
 
 <body>
+    <!-- Theme toggle placed top-left (styled via CSS) -->
+    <button id="themeToggle" aria-label="Toggle theme">🌙 Dark</button>
+
     <header>
         <h1 id="bright" class="text_color">Hospital Bed Availability</h1>
     </header>
@@ -169,15 +202,90 @@
         </select>
         <button type="button" onclick="checkAvailability()">Check Availability</button>
         <div id="availabilityResult" style="text-align: center;"></div>
+        <!-- Status panel: will be populated when a user searches -->
+        <div id="statusContainer" style="display:none;">
+            <h3>Status</h3>
+            <div id="statusMessage">&nbsp;</div>
+            <div id="statusWhen">&nbsp;</div>
+            <a id="contactLink" class="contact-btn" href="#">Contact Hospital</a>
+            <ul id="bedsStatusList" class="beds-list"></ul>
+        </div>
     </form>
 
     <footer>
-        <p style="font-weight: bold; font-size: large;">&copy; 2023 Bed Locator. All rights reserved.</p>
+        <p style="font-weight: bold; font-size: large;">&copy; 2025 Bed Locator. All rights reserved.</p>
     </footer>
     
     <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
     <script src="https://unpkg.com/leaflet-control-geocoder/dist/Control.Geocoder.js"></script>
     <script>
+        // --- theme toggle (persisted) ---
+        const THEME_KEY = 'theme';
+
+        function applyTheme(theme) {
+            if (theme === 'dark') document.documentElement.setAttribute('data-theme', 'dark');
+            else document.documentElement.removeAttribute('data-theme');
+            updateToggleUI(theme);
+        }
+
+        function getStoredTheme() { return localStorage.getItem(THEME_KEY); }
+        function setStoredTheme(t) { localStorage.setItem(THEME_KEY, t); }
+
+        function initTheme() {
+            const stored = getStoredTheme();
+            let theme = stored;
+            if (!theme) {
+                theme = (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) ? 'dark' : 'light';
+            }
+            applyTheme(theme);
+        }
+
+        function toggleTheme() {
+            const current = document.documentElement.getAttribute('data-theme') === 'dark' ? 'dark' : 'light';
+            const next = current === 'dark' ? 'light' : 'dark';
+            applyTheme(next);
+            setStoredTheme(next);
+        }
+
+        function updateToggleUI(theme) {
+            const btn = document.getElementById('themeToggle');
+            if (!btn) return;
+            btn.textContent = theme === 'dark' ? '☀️ Light' : '🌙 Dark';
+            btn.setAttribute('aria-pressed', theme === 'dark');
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            initTheme();
+            const btn = document.getElementById('themeToggle');
+            if (btn) btn.addEventListener('click', () => toggleTheme());
+        });
+
+        // --- small utilities (from ex.html) ---
+        function getRandomIntInclusive(min, max) {
+            min = Math.ceil(min);
+            max = Math.floor(max);
+            return Math.floor(Math.random() * (max - min + 1)) + min;
+        }
+
+        function setCookie(name, value, exDays) {
+            const d = new Date();
+            d.setTime(d.getTime() + (exDays * 24 * 60 * 60 * 1000));
+            const expires = "expires=" + d.toUTCString();
+            document.cookie = name + "=" + value + "; " + expires + "; path=/";
+        }
+
+        function getCookie(name) {
+            const nameEQ = name + "=";
+            const ca = document.cookie.split(';');
+            for (let i = 0; i < ca.length; i++) {
+                let c = ca[i];
+                while (c.charAt(0) === ' ') c = c.substring(1, c.length);
+                if (c.indexOf(nameEQ) === 0) return c.substring(nameEQ.length, c.length);
+            }
+            return null;
+        }
+
+        // --- map setup ---
         function handleKeyPress(event) {
             if (event.key === "Enter") {
                 event.preventDefault();
@@ -185,33 +293,30 @@
         }
 
         var southWest = L.latLng(-90, -180),
-        northEast = L.latLng(90, 180),
-        bounds = L.latLngBounds(southWest, northEast);
+            northEast = L.latLng(90, 180),
+            bounds = L.latLngBounds(southWest, northEast);
 
         var map = L.map('map', {
             center: [0, 0],
             zoom: 0,
-            maxBounds: bounds, // Set the maximum bounds
-            maxBoundsViscosity: 1.0 // Apply the bounds with maximum viscosity
+            maxBounds: bounds,
+            maxBoundsViscosity: 1.0
         });
 
         L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-        attribution: '&copy; OpenStreetMap contributors'
+            attribution: '&copy; OpenStreetMap contributors'
         }).addTo(map);
         L.Control.geocoder().addTo(map);
 
         function getLocation() {
             if (navigator.geolocation) {
                 navigator.geolocation.getCurrentPosition(showPosition, showError);
-            } else {
-                alert("Geolocation is not supported by this browser.");
             }
         }
 
         function showPosition(position) {
             const lat = position.coords.latitude;
             const lng = position.coords.longitude;
-
             map.setView([lat, lng], 13);
             L.marker([lat, lng]).addTo(map)
                 .bindPopup('Your Location')
@@ -229,98 +334,276 @@
                 case error.TIMEOUT:
                     alert("The request to get user location timed out.");
                     break;
-                case error.UNKNOWN_ERROR:
+                default:
                     alert("An unknown error occurred.");
                     break;
             }
         }
 
-        // URL of your FastAPI backend endpoint
-        /*
-const backendAPIUrl = 'https://bedlocator.onrender.com/bedavailability'; 
-*/
+        // --- bed totals mapping (source: original logic) ---
+        const BED_TOTALS = {
+            paras: { general: 350, icu: 91, ventilator: 70 },
+            igims: { general: 1700, icu: 122, ventilator: 50 },
+            aiims: { general: 960, icu: 65, ventilator: 45 },
+            pmch: { general: 1675, icu: 65, ventilator: 110 }
+        };
 
-function checkAvailability() {
-    getLocation();
+        // Additional hospital metadata: phone and operating hours (24h)
+        const HOSPITAL_INFO = {
+            paras: { phone: '+9178350 84931', hours: { open: 7, close: 22 } },
+            igims: { phone: '+919473191807', hours: { open: 0, close: 24 } }, // 24/7
+            aiims: { phone: '+916122451006', hours: { open: 0, close: 24 } }, // 24/7
+            pmch: { phone: '+916122300343', hours: { open: 6, close: 23 } }
+        };
 
-    var hospitalName = document.getElementById("hospitalName").value;
-    var bedType = document.getElementById("bedType").value;
+        // last query state so we can update displayed result every 5 minutes
+        let lastQueried = { hospital: null, bedType: null };
 
-    if (hospitalName.trim() === "") {
-        alert("Please enter a hospital name.");
-        return;
-    }
-/*
-    fetch(backendAPIUrl, { method: 'POST', body: JSON.stringify({ hospitalName, bedType }) })
-        .then(response => response.json())
-        .then(data => {
-            document.getElementById("availabilityResult").innerText = data.message;
-        });
-*/
-    if (hospitalName.toLowerCase() === "paras" && bedType.toLowerCase() === "general") {
-        document.getElementById("availabilityResult").innerText = "Total General Beds: 100 & General Bed Available: 37";
-    } 
+        // generate/get persistent availability per hospital+bedType, drift +/- variance on refresh or interval
+        function getPersistentAvailability(hospital, bedType, totalCount) {
+            const COOKIE_NAME = `bed_${hospital}_${bedType}`;
+            const variance = 2; // +/- 2
+            let stored = getCookie(COOKIE_NAME);
+            let finalNumber;
+            if (stored) {
+                stored = parseInt(stored, 10);
+                const min = Math.max(0, stored - variance);
+                const max = Math.min(totalCount, stored + variance);
+                finalNumber = getRandomIntInclusive(min, max);
+                setCookie(COOKIE_NAME, String(finalNumber), 7);
+            } else {
+                finalNumber = getRandomIntInclusive(0, totalCount);
+                setCookie(COOKIE_NAME, String(finalNumber), 7);
+            }
+            return finalNumber;
+        }
 
-    else if (hospitalName.toLowerCase() === "paras" && bedType.toLowerCase() === "icu") {
-        document.getElementById("availabilityResult").innerText = "Total ICU Beds: 45 & ICU Bed Available: 36";
-    } 
+        function buildAvailabilityMessage(hospital, bedType, total, available) {
+            const label = bedType === 'general' ? 'General' : bedType === 'icu' ? 'ICU' : 'Ventilator';
+            return `Total ${label} Beds: ${total} & ${label} Bed Available: ${available}`;
+        }
 
-    else if (hospitalName.toLowerCase() === "paras" && bedType.toLowerCase() === "ventilator") {
-        document.getElementById("availabilityResult").innerText = "Total Ventilator Beds: 80 & Ventilator Bed Available: 42";
-    } 
+        function checkAvailability() {
+            getLocation();
 
-    else if (hospitalName.toLowerCase() === "igms" && bedType.toLowerCase() === "general") {
-        document.getElementById("availabilityResult").innerText = "Total General Beds: 100 & General Bed Available: 73";
-    } 
+            const hospitalNameRaw = document.getElementById("hospitalName").value || "";
+            const hospitalName = hospitalNameRaw.trim().toLowerCase();
+            const bedType = document.getElementById("bedType").value.toLowerCase();
 
-    else if (hospitalName.toLowerCase() === "igms" && bedType.toLowerCase() === "icu") {
-        document.getElementById("availabilityResult").innerText = "Total ICU Beds: 70 & ICU Bed Available: 61";
-    } 
+            if (hospitalName === "") {
+                alert("Please enter a hospital name.");
+                return;
+            }
 
-    else if (hospitalName.toLowerCase() === "igms" && bedType.toLowerCase() === "ventilator") {
-        document.getElementById("availabilityResult").innerText = "Total Ventilator Beds: 80 & Ventilator Bed Available: 37";
-    } 
+            const hospitalData = BED_TOTALS[hospitalName];
+            if (!hospitalData || !hospitalData.hasOwnProperty(bedType)) {
+                document.getElementById("availabilityResult").innerText = "No name found for given input.";
+                lastQueried.hospital = null;
+                lastQueried.bedType = null;
+                return;
+            }
 
-    else if (hospitalName.toLowerCase() === "igims" && bedType.toLowerCase() === "general") {
-        document.getElementById("availabilityResult").innerText = "Total General Beds: 100 & General Bed Available: 73";
-    } 
+            const total = hospitalData[bedType];
+            const available = getPersistentAvailability(hospitalName, bedType, total);
 
-    else if (hospitalName.toLowerCase() === "igims" && bedType.toLowerCase() === "icu") {
-        document.getElementById("availabilityResult").innerText = "Total ICU Beds: 70 & ICU Bed Available: 61";
-    } 
+            document.getElementById("availabilityResult").innerText = buildAvailabilityMessage(hospitalName, bedType, total, available);
 
-    else if (hospitalName.toLowerCase() === "igims" && bedType.toLowerCase() === "ventilator") {
-        document.getElementById("availabilityResult").innerText = "Total Ventilator Beds: 80 & Ventilator Bed Available: 37";
-    } 
+            // store last queried so the 5-minute updater can refresh the shown number
+            lastQueried.hospital = hospitalName;
+            lastQueried.bedType = bedType;
 
-    else if (hospitalName.toLowerCase() === "aiims" && bedType.toLowerCase() === "general") {
-        document.getElementById("availabilityResult").innerText = "Total General Beds: 200 & General Bed Available: 8";
-    } 
+            // render status panel (open/closed, closing time, contact, and all bed availability)
+            renderStatus(hospitalName);
+        }
 
-    else if (hospitalName.toLowerCase() === "aiims" && bedType.toLowerCase() === "icu") {
-        document.getElementById("availabilityResult").innerText = "Total ICU Beds: 150 & ICU Bed Available: 84";
-    } 
+        // Format hour integer to human-friendly time like 10:00 PM
+        function formatHourTo12(hour) {
+            const h = hour % 24;
+            const ampm = h >= 12 ? 'PM' : 'AM';
+            const hh = ((h + 11) % 12) + 1; // convert 0->12
+            return `${String(hh).padStart(2, '0')}:00 ${ampm}`;
+        }
 
-    else if (hospitalName.toLowerCase() === "aiims" && bedType.toLowerCase() === "ventilator") {
-        document.getElementById("availabilityResult").innerText = "Total Ventilator Beds: 125 & Ventilator Bed Available: 23";
-    } 
+        function formatDateTime(date) {
+            const h = date.getHours();
+            const ampm = h >= 12 ? 'PM' : 'AM';
+            const hh = ((h + 11) % 12) + 1;
+            const time = `${String(hh).padStart(2, '0')}:00 ${ampm}`;
+            return time;
+        }
 
-    else if (hospitalName.toLowerCase() === "pmch" && bedType.toLowerCase() === "general") {
-        document.getElementById("availabilityResult").innerText = "Total General Beds: 120 & General Bed Available: 32";
-    } 
+        function startOfDay(d) {
+            return new Date(d.getFullYear(), d.getMonth(), d.getDate());
+        }
 
-    else if (hospitalName.toLowerCase() === "pmch" && bedType.toLowerCase() === "icu") {
-        document.getElementById("availabilityResult").innerText = "Total ICU Beds: 60 & ICU Bed Available: 47";
-    } 
+        function isSameDay(a, b) {
+            return a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate();
+        }
 
-    else if (hospitalName.toLowerCase() === "pmch" && bedType.toLowerCase() === "ventilator") {
-        document.getElementById("availabilityResult").innerText = "Total Ventilator Beds: 110 & Ventilator Bed Available: 61";
-    } 
+        function dayLabelFor(date) {
+            const today = startOfDay(new Date()).getTime();
+            const d = startOfDay(date).getTime();
+            const oneDay = 24 * 60 * 60 * 1000;
+            if (d === today) return 'today';
+            if (d === today + oneDay) return 'tomorrow';
+            // beyond tomorrow: return weekday + date
+            return date.toLocaleDateString(undefined, { weekday: 'short', day: 'numeric', month: 'short' });
+        }
 
-    else {
-        document.getElementById("availabilityResult").innerText = "No name found for given input."
-    }
-}
+        // compute next open/close datetimes and current open state
+        function computeScheduleInfo(info) {
+            const now = new Date();
+            const currentHour = now.getHours();
+            const open = info.hours.open;
+            const close = info.hours.close;
+
+            // always open
+            if (open === 0 && close === 24) {
+                return { isOpen: true, nextOpen: null, nextClose: null };
+            }
+
+            function makeDateForHour(baseDate, hour) {
+                const d = new Date(baseDate.getFullYear(), baseDate.getMonth(), baseDate.getDate());
+                if (hour === 24) {
+                    // midnight next day
+                    d.setDate(d.getDate() + 1);
+                    d.setHours(0,0,0,0);
+                } else {
+                    d.setHours(hour,0,0,0);
+                }
+                return d;
+            }
+
+            // helper to add days
+            function addDays(date, days) {
+                const d = new Date(date);
+                d.setDate(d.getDate() + days);
+                return d;
+            }
+
+            // open < close: same-day schedule
+            if (open < close) {
+                const openToday = makeDateForHour(now, open);
+                const closeToday = makeDateForHour(now, close);
+                if (now >= openToday && now < closeToday) {
+                    // currently open
+                    return { isOpen: true, nextOpen: null, nextClose: closeToday };
+                }
+                // currently closed
+                if (now < openToday) {
+                    return { isOpen: false, nextOpen: openToday, nextClose: closeToday };
+                }
+                // after close -> next open is tomorrow at open
+                return { isOpen: false, nextOpen: addDays(openToday, 1), nextClose: addDays(closeToday, 1) };
+            }
+
+            // overnight schedule: open >= close (e.g., open 20, close 6)
+            const openToday = makeDateForHour(now, open);
+            let closeForThisOpen;
+            if (close === 24) {
+                // closing at midnight => next day 0:00
+                closeForThisOpen = makeDateForHour(addDays(now, 1), 0);
+            } else {
+                // close time is next day
+                closeForThisOpen = makeDateForHour(addDays(now, 1), close);
+            }
+
+            // is it currently open? It is open if now >= openToday OR now < closeToday (the close time is on next day)
+            const closeToday = makeDateForHour(now, close);
+            // If we're after midnight but before close (e.g., now 2am, close 6am)
+            if (now >= openToday || now < closeToday) {
+                // determine correct close date: if now >= openToday, close is next day at close; if now < closeToday, close is today at close
+                let nextClose;
+                if (now >= openToday) {
+                    nextClose = makeDateForHour(addDays(now,1), close === 24 ? 0 : close);
+                } else {
+                    nextClose = makeDateForHour(now, close);
+                }
+                return { isOpen: true, nextOpen: null, nextClose };
+            }
+
+            // otherwise closed and next opening is today at open
+            return { isOpen: false, nextOpen: openToday, nextClose: closeForThisOpen };
+        }
+
+        function renderStatus(hospital) {
+            const info = HOSPITAL_INFO[hospital] || { phone: '', hours: { open: 0, close: 24 } };
+            const now = new Date();
+            const currentHour = now.getHours();
+            const open = info.hours.open;
+            const close = info.hours.close;
+
+            // determine open/closed (handle overnight closing where close <= open)
+            let isOpen = false;
+            if (open === 0 && close === 24) {
+                isOpen = true; // 24/7
+            } else if (open < close) {
+                isOpen = currentHour >= open && currentHour < close;
+            } else { // overnight (e.g., open 20 to close 6)
+                isOpen = currentHour >= open || currentHour < close;
+            }
+
+            const statusMessageEl = document.getElementById('statusMessage');
+            const statusWhenEl = document.getElementById('statusWhen');
+            const contactLink = document.getElementById('contactLink');
+            const bedsList = document.getElementById('bedsStatusList');
+            const statusContainer = document.getElementById('statusContainer');
+
+            // Build status text with exact next opening/closing info
+            const sched = computeScheduleInfo(info);
+            if (sched.isOpen) {
+                statusMessageEl.textContent = 'Open now';
+                if (sched.nextClose) {
+                    const label = dayLabelFor(sched.nextClose);
+                    const time = formatDateTime(sched.nextClose);
+                    statusWhenEl.textContent = `Closes ${label} at ${time}`;
+                } else {
+                    statusWhenEl.textContent = '';
+                }
+            } else {
+                statusMessageEl.textContent = 'Closed now';
+                if (sched.nextOpen) {
+                    const label = dayLabelFor(sched.nextOpen);
+                    const time = formatDateTime(sched.nextOpen);
+                    statusWhenEl.textContent = `Opens ${label} at ${time}`;
+                } else {
+                    statusWhenEl.textContent = '';
+                }
+            }
+
+            // contact link
+            if (info.phone) {
+                contactLink.href = `tel:${info.phone}`;
+                contactLink.style.display = 'inline-block';
+            } else {
+                contactLink.href = '#';
+                contactLink.style.display = 'none';
+            }
+
+            // hide beds list (user requested to remove per-type bed numbers under contact)
+            bedsList.style.display = 'none';
+
+            // show container
+            statusContainer.style.display = 'block';
+        }
+
+        // Every 5 minutes, update the persistent numbers and update the displayed result if it matches last queried
+        const FIVE_MINUTES = 5 * 60 * 1000;
+        setInterval(() => {
+            // refresh cookies for all known hospitals/bed types so they drift even without user action
+            Object.keys(BED_TOTALS).forEach(hospital => {
+                Object.keys(BED_TOTALS[hospital]).forEach(bedType => {
+                    getPersistentAvailability(hospital, bedType, BED_TOTALS[hospital][bedType]);
+                });
+            });
+
+            // if user has a result shown, recompute for that and update display
+            if (lastQueried.hospital && lastQueried.bedType) {
+                const total = BED_TOTALS[lastQueried.hospital][lastQueried.bedType];
+                const available = getPersistentAvailability(lastQueried.hospital, lastQueried.bedType, total);
+                document.getElementById("availabilityResult").innerText = buildAvailabilityMessage(lastQueried.hospital, lastQueried.bedType, total, available);
+            }
+        }, FIVE_MINUTES);
 
     </script>
 </body>
